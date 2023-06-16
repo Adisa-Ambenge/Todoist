@@ -1,75 +1,28 @@
-const userContainer = document.getElementById('container');
-const getUsers = () => {
-  return fetch('https://dummyjson.com/todos?limit=30')
-    .then(response => response.json())
-    .then(response => response.todos)
-    .catch(error => error);
-};
-const displayUsers = async () => {
-  const users = await getUsers();
-  console.log(users);
-  if (Array.isArray(users)) {
-    users.forEach(item => {
-      let div = document.createElement('div');
-      let userName = document.createElement('input');
-      let ids = document.createElement('span');
-      let checkbox = document.createElement('input');
-      let icon = document.createElement('i');
-      checkbox.type = 'checkbox';
-      checkbox.checked = item.completed;
-      icon.classList.add('fa', 'fa-trash');
-      ids.appendChild(icon);
-      userName.value = item.todo;
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) {
-          userName.style.textDecoration = 'line-through';
-        } else {
-          userName.style.textDecoration = 'none';
-        }
-      });
-      icon.addEventListener('click', () => {
-        deleteUser(item.id);
-        div.remove();
-      });
-      div.appendChild(checkbox);
-      div.appendChild(userName);
-      div.appendChild(ids);
-      div.setAttribute('key', item.id);
-      div.setAttribute('class', 'people');
-      userContainer.appendChild(div);
-    });
-  }
-};
-const deleteUser = async (userId) => {
+const userContainer = document.getElementById('taskList');
+const successMessage = document.getElementById('successMessage');
+const addBtn = document.getElementById('add');
+const deleteBtn = document.getElementById('button2');
+const taskIdInput = document.getElementById('task_input');
+const getTodoById = async (userId) => {
   try {
-    const response = await fetch(`https://dummyjson.com/todos/${userId}`, {
-      method: 'DELETE'
-    });
-    if (!response.ok) {
-      throw new Error('Failed to delete task');
-    }
+    const response = await fetch(`https://dummyjson.com/todos/${userId}`);
+    const todo = await response.json();
+    return todo;
   } catch (error) {
     console.log(error);
+    return null;
   }
 };
-displayUsers();
-const addForm = document.getElementById('addForm');
-addForm.addEventListener('submit', event => {
-  event.preventDefault();
-  const taskInput = document.getElementById('taskInput');
-  const newTask = taskInput.value;
-  taskInput.value = '';
-  if (newTask) {
-    const div = document.createElement('div');
-    const userName = document.createElement('input');
-    const ids = document.createElement('span');
-    const checkbox = document.createElement('input');
-    const icon = document.createElement('i');
+const displayTodo = async (userId) => {
+  const todo = await getTodoById(userId);
+  if (todo) {
+    let li = document.createElement('li');
+    let userName = document.createElement('input');
+    let checkbox = document.createElement('input');
+    let deleteBtn = document.createElement('button');
     checkbox.type = 'checkbox';
-    checkbox.checked = false;
-    icon.classList.add('fa', 'fa-trash');
-    ids.appendChild(icon);
-    userName.value = newTask;
+    checkbox.checked = todo.completed;
+    userName.value = todo.todo;
     checkbox.addEventListener('change', () => {
       if (checkbox.checked) {
         userName.style.textDecoration = 'line-through';
@@ -77,11 +30,46 @@ addForm.addEventListener('submit', event => {
         userName.style.textDecoration = 'none';
       }
     });
-    div.appendChild(checkbox);
-    div.appendChild(userName);
-    div.appendChild(ids);
-    div.setAttribute('key', Date.now());
-    div.setAttribute('class', 'people');
-    userContainer.prepend(div);
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+      deleteTodoById(userId);
+      li.remove();
+    });
+    li.appendChild(checkbox);
+    li.appendChild(userName);
+    li.appendChild(deleteBtn);
+    li.setAttribute('key', userId);
+    li.setAttribute('class', 'task');
+    userContainer.appendChild(li);
+  } else {
+    console.log(`Todo with user ID ${userId} not found.`);
+  }
+};
+const deleteTodoById = async (userId) => {
+  try {
+    const response = await fetch(`https://dummyjson.com/todos/${userId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      throw new Error('Delete failed');
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+const deleteTasks = () => {
+  const tasks = document.getElementsByClassName('task');
+  while (tasks.length > 0) {
+    tasks[0].remove();
+  }
+};
+addBtn.addEventListener('click', () => {
+  const userId = parseInt(taskIdInput.value);
+  if (!isNaN(userId)) {
+    displayTodo(userId);
+    successMessage.textContent = 'Task added successfully!';
+  } else {
+    successMessage.textContent = 'Add valid User ID.';
   }
 });
+deleteBtn.addEventListener('click', deleteTasks);
